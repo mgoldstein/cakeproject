@@ -98,16 +98,53 @@ class BookmarksTable extends Table
         $bookmarks = $this->find()
         ->select(['id', 'url', 'title', 'description']);
 
-    if (empty($options['tags'])) {
-        $bookmarks->leftJoinWith('Tags', function ($q) {
-            return $q->where(['Tags.title IS ' => null]);
-        });
-    } else {
-        $bookmarks->innerJoinWith('Tags', function ($q) use ($options) {
-            return $q->where(['Tags.title IN' => $options['tags']]);
-        });
+        if (empty($options['tags'])) {
+            $bookmarks->leftJoinWith('Tags', function ($q) {
+                return $q->where(['Tags.title IS ' => null]);
+            });
+        } else {
+            $bookmarks->innerJoinWith('Tags', function ($q) use ($options) {
+                return $q->where(['Tags.title IN' => $options['tags']]);
+            });
+        }
+        return $bookmarks->group(['Bookmarks.id']);
+    }
+    
+    public function beforeSave($event, $entity, $options)
+    {
+        if ($entity->tag_string) {
+            $entity->tags = $this->_buildTags($entity->tag_string);
+        }
     }
 
-    return $bookmarks->group(['Bookmarks.id']);
-}
+    protected function _buildTags($tagString)
+    {
+        // Trim tags
+        $newTags = array_map('trim', explode(',', $tagString));
+        // Remove all empty tags
+        $newTags = array_filter($newTags);
+        // Reduce duplicated tags
+        $newTags = array_unique($newTags);
+
+        $out = [];
+        $query = $this->Tags->find()
+            ->where(['Tags.title IN' => $newTags]);
+
+        // Remove existing tags from the list of new tags.
+        foreach ($query->extract('title') as $existing) {
+            $index = array_search($existing, $newTags);
+            if ($index !== false) {
+                unset($newTags[$index]);
+            }
+        }
+        // Add existing tags.
+        foreach ($query as $tag) {
+            $out[] = $tag;
+        }
+        // Add new tags.
+        foreach ($newTags as $tag) {
+            $out[] = $this->Tags->newEntity(['title' => $tag]);
+        }
+        return $out;
+    }
 }

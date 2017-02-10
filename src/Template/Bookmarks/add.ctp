@@ -18,11 +18,12 @@
     <fieldset>
         <legend><?= __('Add Bookmark') ?></legend>
         <?php
-            echo $this->Form->input('user_id', ['options' => $users]);
+            // echo $this->Form->input('user_id', ['options' => $users]);
             echo $this->Form->input('title');
             echo $this->Form->input('description');
             echo $this->Form->input('url');
-            echo $this->Form->input('tags._ids', ['options' => $tags]);
+            // echo $this->Form->input('tags._ids', ['options' => $tags]);
+            echo $this->Form->input('tag_string', ['type' => 'text']);
         ?>
     </fieldset>
     <?= $this->Form->button(__('Submit')) ?>
